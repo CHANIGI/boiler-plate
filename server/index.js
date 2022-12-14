@@ -10,9 +10,7 @@ const config = require('./config/key')
 const cookieParser = require('cookie-parser')
 const {auth} = require('./middleware/auth')
 
-//application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({extended: true}))
-//application/json
 app.use(bodyParser.json())
 app.use(cookieParser())
 
@@ -35,7 +33,7 @@ app.post('/api/register', (req, res) => {
     })
   })
 })
-app.post('/api/login', (req, res) => {
+app.post('/api/users/login', (req, res) => {
   //요청된 이메일을 데이터베이스에서 있는지 찾음
   User.findOne({email:req.body.email}, (err, user) => {
     if(!user){
@@ -46,6 +44,7 @@ app.post('/api/login', (req, res) => {
       
     }
     user.comparePassword(req.body.password, (err, isMatch) => {
+      //입력한 비밀번호랑 데이터베이스의 비밀번호를 비교
       if(!isMatch)
       return res.json({loginSuccess: false, message: "비밀번호가 틀렸습니다."})
       user.generateToken((err, user) => {
@@ -59,6 +58,7 @@ app.post('/api/login', (req, res) => {
 })
 
 app.get('/api/users/auth', auth, (req, res) => {
+  //auth 기능
   res.status(200).json({
     _id: req.user._id,
     isAdmin: req.user.role === 0? false: true,
@@ -70,5 +70,18 @@ app.get('/api/users/auth', auth, (req, res) => {
     image: req.user.image
   })
 })
+
+app.get('/api/users/logout', auth, (req, res) => {
+  //로그아웃 기능
+  User.findOneAndUpdate({_id: req.user._id}, 
+    {token: ""},
+    (err, user) => {
+      if(err) return res.json({success: false, err})
+      return res.status(200).send({
+        success: true
+      })
+    })
+})
+
 
 app.listen(port, () => console.log(`Example app listening in port${port}`))
